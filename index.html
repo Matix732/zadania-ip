@@ -85,7 +85,7 @@
 
         label { margin-bottom: 5px; font-weight: bold; }
 
-        input, select {
+        input[type="text"], input[type="number"], select {
             padding: 10px;
             border-radius: 6px;
             border: 1px solid var(--accent-color);
@@ -131,14 +131,38 @@
         }
 
         .flex-row { display: flex; gap: 10px; align-items: center;}
-        .flex-row input { flex: 1; width: 100%; box-sizing: border-box; }
+        .flex-row input[type="text"], .flex-row input[type="number"] { flex: 1; width: 100%; box-sizing: border-box; }
         
-        .correct { border-color: var(--success-color) !important; background-color: rgba(80, 250, 123, 0.1); }
-        .incorrect { border-color: var(--error-color) !important; background-color: rgba(255, 85, 85, 0.1); }
+        .correct { border-color: var(--success-color) !important; background-color: rgba(80, 250, 123, 0.1) !important; }
+        .incorrect { border-color: var(--error-color) !important; background-color: rgba(255, 85, 85, 0.1) !important; }
         
         .feedback { font-size: 14px; margin-top: 5px; font-weight: bold; }
         .feedback.success { color: var(--success-color); }
         .feedback.error { color: var(--error-color); }
+
+        /* Suwaki */
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+            flex: 1;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            cursor: pointer;
+            margin-top: -6px;
+        }
+        input[type="range"]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: var(--accent-color);
+            border-radius: 2px;
+        }
     </style>
 </head>
 <body>
@@ -200,14 +224,45 @@
         <div class="button-group">
             <button class="btn-info" onclick="sortVlsmList()">Posortuj</button>
             <button class="btn-primary" onclick="checkVlsmTrainer()">Sprawdź</button>
-            <button class="btn-warning" onclick="showVlsmAnswers()">Pokaż dpowiedzi</button>
+            <button class="btn-warning" onclick="showVlsmAnswers()">Pokaż odpowiedzi</button>
             <button class="btn-secondary" onclick="generateDynamicVlsmTask()">Nowy Scenariusz</button>
         </div>
     </div>
 
     <div id="trainer-agg" class="content">
         <h2>Zagreguj podane sieci</h2>
-        <p>Znajdź najmniejszy supernet (adres i maskę), który obejmie poniższe sieci:</p>
+        
+        <div class="form-group" style="background-color: var(--input-bg); padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+            <label style="margin-bottom: 10px; display: block; color: var(--primary-color);">⚙️ Ustawienia losowania podsieci:</label>
+            
+            <div class="flex-row" style="margin-bottom: 15px;">
+                <input type="radio" name="agg-mode" id="agg-random" value="random" checked onchange="toggleAggSettings()">
+                <label for="agg-random" style="margin: 0; cursor: pointer; font-weight: normal;">Losowa ilość z przedziału</label>
+                
+                <input type="radio" name="agg-mode" id="agg-fixed" value="fixed" onchange="toggleAggSettings()">
+                <label for="agg-fixed" style="margin: 0; cursor: pointer; font-weight: normal;">Określona ilość</label>
+            </div>
+            
+            <div id="agg-random-settings" style="display: flex; flex-direction: column; gap: 10px;">
+                <div class="flex-row">
+                    <label style="width: 50px;">Min: <span id="agg-min-val" style="color:var(--success-color);">3</span></label>
+                    <input type="range" id="agg-min" min="2" max="15" value="3" oninput="document.getElementById('agg-min-val').innerText=this.value">
+                </div>
+                <div class="flex-row">
+                    <label style="width: 50px;">Max: <span id="agg-max-val" style="color:var(--success-color);">6</span></label>
+                    <input type="range" id="agg-max" min="2" max="16" value="6" oninput="document.getElementById('agg-max-val').innerText=this.value">
+                </div>
+            </div>
+            
+            <div id="agg-fixed-settings" style="display: none; flex-direction: column; gap: 10px;">
+                <div class="flex-row">
+                    <label style="width: 80px;">Ilość: <span id="agg-count-val" style="color:var(--success-color);">4</span></label>
+                    <input type="range" id="agg-count" min="2" max="16" value="4" oninput="document.getElementById('agg-count-val').innerText=this.value">
+                </div>
+            </div>
+        </div>
+
+        <p>Znajdź najmniejszy wspólny mianownik (supernet), który idealnie przykryje poniższe, różnorodne bloki:</p>
         <ul id="agg-list" style="font-family: monospace; font-size: 1.1em; color: var(--primary-color);"></ul>
         
         <div class="flex-row">
@@ -393,7 +448,6 @@
         const numSubnets = Math.floor(Math.random() * 3) + 4; // od 4 do 6 podsieci
         let reqSubnets = [];
 
-        // Generowanie zapotrzebowań
         for(let i=0; i<numSubnets; i++) {
             let hosts;
             let rand = Math.random();
@@ -405,7 +459,6 @@
             reqSubnets.push({ name: depNames[i], hosts: hosts });
         }
 
-        // Obliczanie bloków i sortowanie
         let sorted = [...reqSubnets].sort((a, b) => b.hosts - a.hosts);
         let totalBlockSize = 0;
 
@@ -417,9 +470,8 @@
             totalBlockSize += sub.blockSize;
         });
 
-        // Dobieranie sieci bazowej
         let baseM = Math.ceil(Math.log2(totalBlockSize));
-        if (Math.random() > 0.5) baseM += 1; // Zapas
+        if (Math.random() > 0.5) baseM += 1; 
         let baseCidr = 32 - baseM;
         if (baseCidr < 16) baseCidr = 16; 
 
@@ -449,7 +501,6 @@
 
         document.getElementById('vlsm-base-display').innerText = `${currentVlsmTask.baseIp} /${currentVlsmTask.baseCidr}`;
         
-        // Renderujemy pomikszowaną listę jako zadanie
         let shuffledSubnets = [...currentVlsmTask.subnets].sort(() => Math.random() - 0.5);
         renderVlsmList(shuffledSubnets);
 
@@ -529,25 +580,96 @@
     // --- LOGIKA TRENAŻERA AGREGACJI ---
     let currentAggTask = {};
 
+    function toggleAggSettings() {
+        const isRandom = document.getElementById('agg-random').checked;
+        document.getElementById('agg-random-settings').style.display = isRandom ? 'flex' : 'none';
+        document.getElementById('agg-fixed-settings').style.display = isRandom ? 'none' : 'flex';
+    }
+
     function generateAggTask() {
-        const baseIpArr = [192, 168, Math.floor(Math.random() * 50) * 4, 0];
-        const subnets = [
-            `${baseIpArr[0]}.${baseIpArr[1]}.${baseIpArr[2] + 0}.0/24`,
-            `${baseIpArr[0]}.${baseIpArr[1]}.${baseIpArr[2] + 1}.0/24`,
-            `${baseIpArr[0]}.${baseIpArr[1]}.${baseIpArr[2] + 2}.0/24`,
-            `${baseIpArr[0]}.${baseIpArr[1]}.${baseIpArr[2] + 3}.0/24`
-        ];
+        const isRandom = document.getElementById('agg-random').checked;
+        let numSubnets = 4;
         
+        if (isRandom) {
+            let min = parseInt(document.getElementById('agg-min').value);
+            let max = parseInt(document.getElementById('agg-max').value);
+            // Zabezpieczenie gdyby użytkownik na suwakach ustawił Min > Max
+            if (min > max) { let temp = min; min = max; max = temp; }
+            numSubnets = Math.floor(Math.random() * (max - min + 1)) + min;
+        } else {
+            numSubnets = parseInt(document.getElementById('agg-count').value);
+        }
+
+        // Losowanie bazowej sieci prywatnej
+        const privates = [
+            { oct1: 10, oct2: Math.floor(Math.random()*256) },
+            { oct1: 172, oct2: 16 + Math.floor(Math.random()*16) },
+            { oct1: 192, oct2: 168 }
+        ];
+        let p = privates[Math.floor(Math.random()*privates.length)];
+        
+        // Wybieramy bezpieczny bajt, by nie wyrzuciło nas poza pulę przy dużych podsieciach
+        let oct3 = Math.floor(Math.random() * 200); 
+        
+        let currentIpLong = ipToLong(`${p.oct1}.${p.oct2}.${oct3}.0`);
+        let generatedSubnets = [];
+        
+        // Generowanie ciągłych podsieci o ZMIENNYCH maskach
+        for(let i=0; i<numSubnets; i++) {
+            let possibleCidrs = [];
+            // Szukamy masek od /22 do /29, które ładnie pasują do aktualnej granicy IP
+            for(let c=22; c<=29; c++) {
+                let blockSize = Math.pow(2, 32-c);
+                if ((currentIpLong >>> 0) % blockSize === 0) {
+                    possibleCidrs.push(c);
+                }
+            }
+            
+            // Losujemy maskę z puli dostępnych dla danej granicy
+            let chosenCidr = possibleCidrs.length > 0 ? possibleCidrs[Math.floor(Math.random() * possibleCidrs.length)] : 24;
+            
+            generatedSubnets.push({
+                ipStr: longToIp(currentIpLong),
+                ipLong: currentIpLong,
+                cidr: chosenCidr
+            });
+            
+            currentIpLong += Math.pow(2, 32-chosenCidr);
+        }
+
+        // Wyliczanie perfekcyjnego Supernetu algorytmem XOR
+        let minIp = 0xFFFFFFFF >>> 0;
+        let maxBrd = 0;
+
+        generatedSubnets.forEach(sub => {
+            let maskLong = ~((1 << (32 - sub.cidr)) - 1) >>> 0;
+            let net = (sub.ipLong & maskLong) >>> 0;
+            let brd = (net | ~maskLong) >>> 0;
+            if (net < minIp) minIp = net;
+            if (brd > maxBrd) maxBrd = brd;
+        });
+
+        // Sprawdzamy na ilu bitach różni się pierwszy adres sieci od ostatniego broadcastu
+        let xor = (minIp ^ maxBrd) >>> 0;
+        let commonBits = 32;
+        while (xor > 0 && commonBits > 0) {
+            xor >>>= 1;
+            commonBits--;
+        }
+
+        let summaryMaskLong = ~((1 << (32 - commonBits)) - 1) >>> 0;
+        let summaryNet = (minIp & summaryMaskLong) >>> 0;
+
         currentAggTask = {
-            ip: `${baseIpArr[0]}.${baseIpArr[1]}.${baseIpArr[2]}.0`,
-            mask: "22"
+            ip: longToIp(summaryNet),
+            mask: commonBits.toString()
         };
 
         const listEl = document.getElementById('agg-list');
         listEl.innerHTML = "";
-        subnets.forEach(sub => {
+        generatedSubnets.forEach(sub => {
             let li = document.createElement('li');
-            li.innerText = sub;
+            li.innerText = `${sub.ipStr} /${sub.cidr}`;
             listEl.appendChild(li);
         });
 
