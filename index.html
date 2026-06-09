@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Narzędzia Treningu Adresacji IP{</title>
+    <style>
+        :root {
+            --bg-color: #1e1e2f;
+            --container-bg: #2a2a40;
+            --text-color: #f8f8f2;
+            --accent-color: #6272a4;
+            --primary-color: #bd93f9;
+            --success-color: #50fa7b;
+            --error-color: #ff5555;
+            --input-bg: #44475a;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            background-color: var(--container-bg);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+            width: 100%;
+            max-width: 800px;
+        }
+
+        h1 { text-align: center; color: var(--primary-color); }
+
+        .tabs {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--input-bg);
+            flex-wrap: wrap;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            font-weight: bold;
+            color: var(--accent-color);
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .tab:hover { color: var(--text-color); }
+        .tab.active {
+            color: var(--primary-color);
+            border-bottom: 3px solid var(--primary-color);
+        }
+
+        .content { display: none; }
+        .content.active { display: block; }
+
+        .form-group {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        label { margin-bottom: 5px; font-weight: bold; }
+
+        input, select {
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid var(--accent-color);
+            background-color: var(--input-bg);
+            color: var(--text-color);
+            font-size: 16px;
+        }
+
+        input:focus { outline: none; border-color: var(--primary-color); }
+
+        button {
+            padding: 12px 20px;
+            background-color: var(--primary-color);
+            color: var(--bg-color);
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: opacity 0.2s;
+        }
+
+        button:hover { opacity: 0.8; }
+
+        .result-box {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: var(--input-bg);
+            border-radius: 6px;
+            border-left: 5px solid var(--primary-color);
+        }
+
+        .flex-row { display: flex; gap: 10px; align-items: center;}
+        .flex-row input { flex: 1; }
+        
+        .correct { border-color: var(--success-color) !important; background-color: rgba(80, 250, 123, 0.1); }
+        .incorrect { border-color: var(--error-color) !important; background-color: rgba(255, 85, 85, 0.1); }
+        
+        .feedback { font-size: 14px; margin-top: 5px; }
+        .feedback.success { color: var(--success-color); }
+        .feedback.error { color: var(--error-color); }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Sieciowe Narzędzia IP</h1>
+    
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('calc')">Kalkulator Podsieci</div>
+        <div class="tab" onclick="switchTab('trainer-ip')">Trenażer IP</div>
+        <div class="tab" onclick="switchTab('trainer-agg')">Trenażer Agregacji</div>
+    </div>
+
+    <div id="calc" class="content active">
+        <h2>Oblicz parametry sieci</h2>
+        <div class="form-group">
+            <label>Adres IP (np. 192.168.1.10)</label>
+            <input type="text" id="calc-ip" placeholder="X.X.X.X">
+        </div>
+        <div class="form-group">
+            <label>Maska CIDR (np. 24)</label>
+            <input type="number" id="calc-mask" min="8" max="32" placeholder="8-32">
+        </div>
+        <button onclick="calculateSubnet()">Oblicz</button>
+        <div id="calc-result" class="result-box" style="display:none;"></div>
+    </div>
+
+    <div id="trainer-ip" class="content">
+        <h2>Znajdź sieć i broadcast</h2>
+        <p>Adres hosta: <strong id="train-ip-display" style="color:var(--primary-color); font-size:1.2em;"></strong></p>
+        
+        <div class="form-group">
+            <label>Adres Sieci</label>
+            <input type="text" id="ans-net" placeholder="X.X.X.X">
+            <div id="feed-net" class="feedback"></div>
+        </div>
+        <div class="form-group">
+            <label>Adres Rozgłoszeniowy (Broadcast)</label>
+            <input type="text" id="ans-brd" placeholder="X.X.X.X">
+            <div id="feed-brd" class="feedback"></div>
+        </div>
+        
+        <div class="flex-row">
+            <button onclick="checkIpTrainer()">Sprawdź</button>
+            <button onclick="generateIpTask()" style="background-color: var(--accent-color);">Nowe Zadanie</button>
+        </div>
+    </div>
+
+    <div id="trainer-agg" class="content">
+        <h2>Zagreguj podane sieci</h2>
+        <p>Znajdź najmniejszy supernet (adres i maskę), który obejmie poniższe sieci:</p>
+        <ul id="agg-list" style="font-family: monospace; font-size: 1.1em; color: var(--primary-color);"></ul>
+        
+        <div class="flex-row">
+            <div class="form-group" style="flex: 2;">
+                <label>Adres Supernetu</label>
+                <input type="text" id="ans-agg-ip" placeholder="X.X.X.X">
+            </div>
+            <div class="form-group" style="flex: 1;">
+                <label>Maska CIDR</label>
+                <input type="number" id="ans-agg-mask" placeholder="np. 22">
+            </div>
+        </div>
+        <div id="feed-agg" class="feedback"></div>
+        
+        <div class="flex-row">
+            <button onclick="checkAggTrainer()">Sprawdź</button>
+            <button onclick="generateAggTask()" style="background-color: var(--accent-color);">Nowe Zadanie</button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // --- BIBLIOTEKA MATEMATYKI IP ---
+    function ipToLong(ip) {
+        return ip.split('.').reduce((acc, octet) => (acc << 8) + parseInt(octet, 10), 0) >>> 0;
+    }
+
+    function longToIp(long) {
+        return [ (long >>> 24) & 255, (long >>> 16) & 255, (long >>> 8) & 255, long & 255 ].join('.');
+    }
+
+    function getSubnetInfo(ipStr, cidr) {
+        const ipLong = ipToLong(ipStr);
+        const maskLong = ~((1 << (32 - cidr)) - 1) >>> 0;
+        const netLong = (ipLong & maskLong) >>> 0;
+        const brdLong = (netLong | ~maskLong) >>> 0;
+        
+        return {
+            network: longToIp(netLong),
+            broadcast: longToIp(brdLong),
+            firstHost: cidr < 31 ? longToIp(netLong + 1) : "N/A",
+            lastHost: cidr < 31 ? longToIp(brdLong - 1) : "N/A",
+            hosts: cidr < 31 ? Math.pow(2, 32 - cidr) - 2 : (cidr === 31 ? 2 : 0)
+        };
+    }
+
+    // --- ZARZĄDZANIE ZAKŁADKAMI ---
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+        
+        document.querySelector(`.tab[onclick="switchTab('${tabId}')"]`).classList.add('active');
+        document.getElementById(tabId).classList.add('active');
+    }
+
+    // --- LOGIKA KALKULATORA ---
+    function calculateSubnet() {
+        const ip = document.getElementById('calc-ip').value;
+        const mask = parseInt(document.getElementById('calc-mask').value);
+        const resBox = document.getElementById('calc-result');
+
+        if(!ip || !mask || mask < 8 || mask > 32) {
+            resBox.innerHTML = "<span style='color:red;'>Podaj poprawny adres IP i maskę (8-32).</span>";
+            resBox.style.display = "block";
+            return;
+        }
+
+        try {
+            const info = getSubnetInfo(ip, mask);
+            resBox.innerHTML = `
+                <strong>Sieć:</strong> ${info.network} /${mask}<br>
+                <strong>Pierwszy host:</strong> ${info.firstHost}<br>
+                <strong>Ostatni host:</strong> ${info.lastHost}<br>
+                <strong>Broadcast:</strong> ${info.broadcast}<br>
+                <strong>Użyteczne hosty:</strong> ${info.hosts}
+            `;
+            resBox.style.display = "block";
+        } catch (e) {
+            resBox.innerHTML = "<span style='color:red;'>Błąd formatu IP.</span>";
+            resBox.style.display = "block";
+        }
+    }
+
+    // --- LOGIKA MASZYNKI IP ---
+    let currentTrainInfo = {};
+
+    function generateIpTask() {
+        const octet1 = Math.floor(Math.random() * 223) + 1;
+        const octet2 = Math.floor(Math.random() * 256);
+        const octet3 = Math.floor(Math.random() * 256);
+        const octet4 = Math.floor(Math.random() * 256);
+        const cidr = Math.floor(Math.random() * 20) + 10; // od /10 do /29
+        
+        const ip = `${octet1}.${octet2}.${octet3}.${octet4}`;
+        currentTrainInfo = getSubnetInfo(ip, cidr);
+        
+        document.getElementById('train-ip-display').innerText = `${ip} /${cidr}`;
+        
+        // Czyszczenie
+        ['ans-net', 'ans-brd'].forEach(id => {
+            const el = document.getElementById(id);
+            el.value = ""; el.className = "";
+        });
+        ['feed-net', 'feed-brd'].forEach(id => { document.getElementById(id).innerText = ""; });
+    }
+
+    function checkIpTrainer() {
+        const userNet = document.getElementById('ans-net');
+        const userBrd = document.getElementById('ans-brd');
+        const feedNet = document.getElementById('feed-net');
+        const feedBrd = document.getElementById('feed-brd');
+
+        if(userNet.value.trim() === currentTrainInfo.network) {
+            userNet.className = "correct"; feedNet.innerHTML = "Świetnie!"; feedNet.className = "feedback success";
+        } else {
+            userNet.className = "incorrect"; feedNet.innerHTML = `Błąd. Prawidłowa sieć to: ${currentTrainInfo.network}`; feedNet.className = "feedback error";
+        }
+
+        if(userBrd.value.trim() === currentTrainInfo.broadcast) {
+            userBrd.className = "correct"; feedBrd.innerHTML = "Świetnie!"; feedBrd.className = "feedback success";
+        } else {
+            userBrd.className = "incorrect"; feedBrd.innerHTML = `Błąd. Prawidłowy broadcast to: ${currentTrainInfo.broadcast}`; feedBrd.className = "feedback error";
+        }
+    }
+
+    // --- LOGIKA MASZYNKI AGREGACJI ---
+    let currentAggTask = {};
+
+    function generateAggTask() {
+        const baseIpArr = [192, 168, Math.floor(Math.random() * 50) * 4, 0];
+        const subnets = [
+            `${baseIpArr[0]}.${baseIpArr[1]}.${baseIpArr[2] + 0}.0/24`,
+            `${baseIpArr[0]}.${baseIpArr[1]}.${baseIpArr[2] + 1}.0/24`,
+            `${baseIpArr[0]}.${baseIpArr[1]}.${baseIpArr[2] + 2}.0/24`,
+            `${baseIpArr[0]}.${baseIpArr[1]}.${baseIpArr[2] + 3}.0/24`
+        ];
+        
+        currentAggTask = {
+            ip: `${baseIpArr[0]}.${baseIpArr[1]}.${baseIpArr[2]}.0`,
+            mask: "22"
+        };
+
+        const listEl = document.getElementById('agg-list');
+        listEl.innerHTML = "";
+        subnets.forEach(sub => {
+            let li = document.createElement('li');
+            li.innerText = sub;
+            listEl.appendChild(li);
+        });
+
+        // Czyszczenie
+        document.getElementById('ans-agg-ip').value = "";
+        document.getElementById('ans-agg-mask').value = "";
+        document.getElementById('feed-agg').innerText = "";
+        document.getElementById('ans-agg-ip').className = "";
+        document.getElementById('ans-agg-mask').className = "";
+    }
+
+    function checkAggTrainer() {
+        const userIp = document.getElementById('ans-agg-ip');
+        const userMask = document.getElementById('ans-agg-mask');
+        const feed = document.getElementById('feed-agg');
+
+        let isCorrect = true;
+
+        if(userIp.value.trim() === currentAggTask.ip) {
+            userIp.className = "correct";
+        } else {
+            userIp.className = "incorrect";
+            isCorrect = false;
+        }
+
+        if(userMask.value.trim() === currentAggTask.mask) {
+            userMask.className = "correct";
+        } else {
+            userMask.className = "incorrect";
+            isCorrect = false;
+        }
+
+        if(isCorrect) {
+            feed.innerText = "Perfekcyjnie! Obliczyłeś prawidłowy supernet.";
+            feed.className = "feedback success";
+        } else {
+            feed.innerText = `Błąd. Prawidłowy supernet to: ${currentAggTask.ip} /${currentAggTask.mask}`;
+            feed.className = "feedback error";
+        }
+    }
+
+    // Inicjalizacja przy pierwszym załadowaniu
+    generateIpTask();
+    generateAggTask();
+
+</script>
+</body>
+</html>
