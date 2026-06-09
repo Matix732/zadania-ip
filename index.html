@@ -136,7 +136,7 @@
             <input type="text" id="calc-ip" placeholder="X.X.X.X">
         </div>
         <div class="form-group">
-            <label>Maska</label>
+            <label>Maska (CIDR)</label>
             <input type="number" id="calc-mask" min="8" max="32" placeholder="8-32">
         </div>
         <button onclick="calculateSubnet()">Oblicz</button>
@@ -190,7 +190,7 @@
                 <input type="text" id="ans-agg-ip" placeholder="X.X.X.X">
             </div>
             <div class="form-group" style="flex: 1;">
-                <label>Maska</label>
+                <label>Maska (CIDR)</label>
                 <input type="number" id="ans-agg-mask" placeholder="np. 22">
             </div>
         </div>
@@ -205,7 +205,7 @@
 </div>
 
 <script>
-    // --- BIBLIOTEKA MATEMATYKI IP ---
+    // --- Biblioteka matematyki IP ---
     function ipToLong(ip) {
         return ip.split('.').reduce((acc, octet) => (acc << 8) + parseInt(octet, 10), 0) >>> 0;
     }
@@ -229,16 +229,283 @@
         };
     }
 
+    // --- Zarządzanie zakładkami ---
     function switchTab(tabId) {
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
         
         const activeTab = document.querySelector(`.tab[onclick="switchTab('${tabId}')"]`);
         if (activeTab) activeTab.classList.add('active');
-
+        
         const activeContent = document.getElementById(tabId);
         if (activeContent) activeContent.classList.add('active');
     }
 
+    // --- LLogika Kalkulatora ---
     function calculateSubnet() {
-        const ip = document
+        const ip = document.getElementById('calc-ip').value;
+        const mask = parseInt(document.getElementById('calc-mask').value);
+        const resBox = document.getElementById('calc-result');
+
+        if(!ip || !mask || mask < 8 || mask > 32) {
+            resBox.innerHTML = "<span style='color:red;'>Podaj poprawny adres IP i maskę (8-32).</span>";
+            resBox.style.display = "block";
+            return;
+        }
+
+        try {
+            const info = getSubnetInfo(ip, mask);
+            resBox.innerHTML = `
+                <strong>Sieć:</strong> ${info.network} /${mask}<br>
+                <strong>Pierwszy host:</strong> ${info.firstHost}<br>
+                <strong>Ostatni host:</strong> ${info.lastHost}<br>
+                <strong>Broadcast:</strong> ${info.broadcast}<br>
+                <strong>Użyteczne hosty:</strong> ${info.hosts}
+            `;
+            resBox.style.display = "block";
+        } catch (e) {
+            resBox.innerHTML = "<span style='color:red;'>Błąd formatu IP.</span>";
+            resBox.style.display = "block";
+        }
+    }
+
+    // --- LLogika generatora zad IP ---
+    let currentTrainInfo = {};
+
+    function generateIpTask() {
+        const octet1 = Math.floor(Math.random() * 223) + 1;
+        const octet2 = Math.floor(Math.random() * 256);
+        const octet3 = Math.floor(Math.random() * 256);
+        const octet4 = Math.floor(Math.random() * 256);
+        const cidr = Math.floor(Math.random() * 20) + 10;
+        
+        const ip = `${octet1}.${octet2}.${octet3}.${octet4}`;
+        currentTrainInfo = getSubnetInfo(ip, cidr);
+        
+        document.getElementById('train-ip-display').innerText = `${ip} /${cidr}`;
+        
+        ['ans-net', 'ans-brd'].forEach(id => {
+            const el = document.getElementById(id);
+            el.value = ""; el.className = "";
+        });
+        ['feed-net', 'feed-brd'].forEach(id => { document.getElementById(id).innerText = ""; });
+    }
+
+    function checkIpTrainer() {
+        const userNet = document.getElementById('ans-net');
+        const userBrd = document.getElementById('ans-brd');
+        const feedNet = document.getElementById('feed-net');
+        const feedBrd = document.getElementById('feed-brd');
+
+        if(userNet.value.trim() === currentTrainInfo.network) {
+            userNet.className = "correct"; feedNet.innerHTML = "Świetnie!"; feedNet.className = "feedback success";
+        } else {
+            userNet.className = "incorrect"; feedNet.innerHTML = `Błąd. Prawidłowa sieć to: ${currentTrainInfo.network}`; feedNet.className = "feedback error";
+        }
+
+        if(userBrd.value.trim() === currentTrainInfo.broadcast) {
+            userBrd.className = "correct"; feedBrd.innerHTML = "Świetnie!"; feedBrd.className = "feedback success";
+        } else {
+            userBrd.className = "incorrect"; feedBrd.innerHTML = `Błąd. Prawidłowy broadcast to: ${currentTrainInfo.broadcast}`; feedBrd.className = "feedback error";
+        }
+    }
+
+    // --- DYNAMICZNY SILNIK VLSM ---
+    let currentVlsmTask = {};
+
+    function generateDynamicVlsmTask() {
+        const depNames = ["Zarząd", "Księgowość", "IT", "HR", "Logistyka", "Produkcja", "Sprzedaż", "Goście", "WAN 1", "WAN 2", "Kamery IoT", "Serwery"];
+        depNames.sort(() => Math.random() - 0.5);
+
+        const numSubnets = Math.floor(Math.random() * 3) + 4; // od 4 do 6 podsieci
+        let reqSubnets = [];
+
+        // Generowanie zapotrzebowań
+        for(let i=0; i<numSubnets; i++) {
+            let hosts;
+            let rand = Math.random();
+            if (rand < 0.2) hosts = Math.floor(Math.random() * 400) + 100; // Duże
+            else if (rand < 0.5) hosts = Math.floor(Math.random() * 80) + 20; // Średnie
+            else if (rand < 0.8) hosts = Math.floor(Math.random() * 15) + 5; // Małe
+            else hosts = 2; // Linki Point-to-Point
+
+            reqSubnets.push({ name: depNames[i], hosts: hosts });
+        }
+
+        // Obliczanie bloków i sortowanie
+        let sorted = [...reqSubnets].sort((a, b) => b.hosts - a.hosts);
+        let totalBlockSize = 0;
+
+        sorted.forEach(sub => {
+            let reqIps = sub.hosts + 2;
+            let m = Math.ceil(Math.log2(reqIps));
+            sub.blockSize = Math.pow(2, m);
+            sub.correctCidr = 32 - m;
+            totalBlockSize += sub.blockSize;
+        });
+
+        // Dobieranie sieci bazowej
+        let baseM = Math.ceil(Math.log2(totalBlockSize));
+        if (Math.random() > 0.5) baseM += 1; // Zapas
+        let baseCidr = 32 - baseM;
+        if (baseCidr < 16) baseCidr = 16; 
+
+        const privates = [
+            { oct1: 10, oct2: Math.floor(Math.random()*256) },
+            { oct1: 172, oct2: 16 + Math.floor(Math.random()*16) },
+            { oct1: 192, oct2: 168 }
+        ];
+        let p = privates[Math.floor(Math.random()*privates.length)];
+        let oct3 = Math.floor(Math.random()*256);
+        
+        let rawLong = ipToLong(`${p.oct1}.${p.oct2}.${oct3}.0`);
+        let maskLong = ~((1 << (32 - baseCidr)) - 1) >>> 0;
+        let baseNetLong = (rawLong & maskLong) >>> 0;
+
+        let currentIpLong = baseNetLong;
+        sorted.forEach(sub => {
+            sub.correctIp = longToIp(currentIpLong);
+            currentIpLong += sub.blockSize;
+        });
+
+        currentVlsmTask = {
+            baseIp: longToIp(baseNetLong),
+            baseCidr: baseCidr,
+            subnets: sorted
+        };
+
+        document.getElementById('vlsm-base-display').innerText = `${currentVlsmTask.baseIp} /${currentVlsmTask.baseCidr}`;
+        
+        let shuffledSubnets = [...currentVlsmTask.subnets].sort(() => Math.random() - 0.5);
+        const listEl = document.getElementById('vlsm-input-list');
+        listEl.innerHTML = "";
+        
+        shuffledSubnets.forEach((sub, index) => {
+            const row = document.createElement('div');
+            row.className = "flex-row form-group";
+            row.style.alignItems = "flex-end";
+            row.style.marginBottom = "10px";
+            row.innerHTML = `
+                <div style="flex: 2;">
+                    <label>${sub.name} (Wymaga: ${sub.hosts} hostów)</label>
+                    <input type="text" id="ans-vlsm-ip-${index}" data-name="${sub.name}" placeholder="Adres sieci">
+                </div>
+                <div style="flex: 1;">
+                    <label>Maska (CIDR)</label>
+                    <input type="number" id="ans-vlsm-mask-${index}" placeholder="np. 24">
+                </div>
+            `;
+            listEl.appendChild(row);
+        });
+
+        document.getElementById('feed-vlsm').innerText = "";
+        document.getElementById('feed-vlsm').className = "feedback";
+    }
+
+    function checkVlsmTrainer() {
+        let allCorrect = true;
+        const listEl = document.getElementById('vlsm-input-list');
+        const rows = listEl.children;
+
+        for (let i = 0; i < rows.length; i++) {
+            const ipInput = document.getElementById(`ans-vlsm-ip-${i}`);
+            const maskInput = document.getElementById(`ans-vlsm-mask-${i}`);
+            const subName = ipInput.getAttribute('data-name');
+
+            const correctData = currentVlsmTask.subnets.find(s => s.name === subName);
+
+            if (ipInput.value.trim() === correctData.correctIp) {
+                ipInput.className = "correct";
+            } else {
+                ipInput.className = "incorrect";
+                allCorrect = false;
+            }
+
+            if (parseInt(maskInput.value) === correctData.correctCidr) {
+                maskInput.className = "correct";
+            } else {
+                maskInput.className = "incorrect";
+                allCorrect = false;
+            }
+        }
+
+        const feed = document.getElementById('feed-vlsm');
+        if (allCorrect) {
+            feed.innerText = "Fantastycznie! Wszystkie granice podsieci i maski są wyliczone idealnie.";
+            feed.className = "feedback success";
+        } else {
+            feed.innerText = "Błąd alokacji. Upewnij się, że posortowałeś działy malejąco wg zapotrzebowania na hosty i uwzględniłeś po 2 adresy na każdą podsieć!";
+            feed.className = "feedback error";
+        }
+    }
+
+    // --- LOGIKA TRENAŻERA AGREGACJI ---
+    let currentAggTask = {};
+
+    function generateAggTask() {
+        const baseIpArr = [192, 168, Math.floor(Math.random() * 50) * 4, 0];
+        const subnets = [
+            `${baseIpArr[0]}.${baseIpArr[1]}.${baseIpArr[2] + 0}.0/24`,
+            `${baseIpArr[0]}.${baseIpArr[1]}.${baseIpArr[2] + 1}.0/24`,
+            `${baseIpArr[0]}.${baseIpArr[1]}.${baseIpArr[2] + 2}.0/24`,
+            `${baseIpArr[0]}.${baseIpArr[1]}.${baseIpArr[2] + 3}.0/24`
+        ];
+        
+        currentAggTask = {
+            ip: `${baseIpArr[0]}.${baseIpArr[1]}.${baseIpArr[2]}.0`,
+            mask: "22"
+        };
+
+        const listEl = document.getElementById('agg-list');
+        listEl.innerHTML = "";
+        subnets.forEach(sub => {
+            let li = document.createElement('li');
+            li.innerText = sub;
+            listEl.appendChild(li);
+        });
+
+        document.getElementById('ans-agg-ip').value = "";
+        document.getElementById('ans-agg-mask').value = "";
+        document.getElementById('feed-agg').innerText = "";
+        document.getElementById('ans-agg-ip').className = "";
+        document.getElementById('ans-agg-mask').className = "";
+    }
+
+    function checkAggTrainer() {
+        const userIp = document.getElementById('ans-agg-ip');
+        const userMask = document.getElementById('ans-agg-mask');
+        const feed = document.getElementById('feed-agg');
+
+        let isCorrect = true;
+
+        if(userIp.value.trim() === currentAggTask.ip) {
+            userIp.className = "correct";
+        } else {
+            userIp.className = "incorrect";
+            isCorrect = false;
+        }
+
+        if(userMask.value.trim() === currentAggTask.mask) {
+            userMask.className = "correct";
+        } else {
+            userMask.className = "incorrect";
+            isCorrect = false;
+        }
+
+        if(isCorrect) {
+            feed.innerText = "Perfekcyjnie! Obliczyłeś prawidłowy supernet.";
+            feed.className = "feedback success";
+        } else {
+            feed.innerText = `Błąd. Prawidłowy supernet to: ${currentAggTask.ip} /${currentAggTask.mask}`;
+            feed.className = "feedback error";
+        }
+    }
+
+    // Uruchomienie narzędzi po załadowaniu
+    generateIpTask();
+    generateDynamicVlsmTask();
+    generateAggTask();
+
+</script>
+</body>
+</html>
