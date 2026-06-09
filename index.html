@@ -125,7 +125,7 @@
         .correct { border-color: var(--success-color) !important; background-color: rgba(80, 250, 123, 0.1); }
         .incorrect { border-color: var(--error-color) !important; background-color: rgba(255, 85, 85, 0.1); }
         
-        .feedback { font-size: 14px; margin-top: 5px; text-align: center; font-weight: bold; }
+        .feedback { font-size: 14px; margin-top: 5px; font-weight: bold; }
         .feedback.success { color: var(--success-color); }
         .feedback.error { color: var(--error-color); }
         
@@ -181,20 +181,20 @@
     </div>
 
     <div id="trainer-vlsm" class="content">
-        <h2 style="text-align: center;">Dynamiczny podział VLSM</h2>
-        <p style="text-align: center;">Dostałeś do dyspozycji blok adresowy: <strong id="vlsm-base-display" style="color:var(--primary-color); font-size:1.2em;"></strong></p>
-        <p style="text-align: center;">Wydziel z niego poniższe podsieci (pamiętaj o sortowaniu od największej do najmniejszej i rezerwacji adresów!):</p>
+        <h2>Dynamiczny podział VLSM</h2>
+        <p>Dostałeś do dyspozycji blok adresowy: <strong id="vlsm-base-display" style="color:var(--primary-color); font-size:1.2em;"></strong></p>
+        <p>Wydziel z niego poniższe podsieci (pamiętaj o sortowaniu od największej do najmniejszej i rezerwacji adresów!):</p>
         
         <div id="vlsm-input-list"></div>
         
         <div id="feed-vlsm" class="feedback" style="margin-bottom: 15px;"></div>
         
-        <div class="flex-row" style="justify-content: center; margin-bottom: 15px; flex-wrap: wrap;">
+        <div class="flex-row" style="margin-bottom: 15px; flex-wrap: wrap;">
             <button class="btn-hint" onclick="sortVlsmList()">💡 Ułatwienie: Posortuj</button>
             <button class="btn-answer" onclick="showVlsmAnswers()">👁️ Pokaż odpowiedzi</button>
         </div>
 
-        <div class="flex-row" style="justify-content: center; flex-wrap: wrap;">
+        <div class="flex-row" style="flex-wrap: wrap;">
             <button onclick="checkVlsmTrainer()">Sprawdź podział</button>
             <button onclick="generateDynamicVlsmTask()" style="background-color: var(--accent-color);">Generuj Scenariusz</button>
         </div>
@@ -340,20 +340,15 @@
         
         subnetsArray.forEach((sub, index) => {
             const row = document.createElement('div');
-            row.className = "flex-row form-group";
-            // Zmieniono wyrównanie na środek
-            row.style.alignItems = "center";
-            row.style.justifyContent = "center";
-            row.style.marginBottom = "10px";
+            row.className = "form-group";
+            row.style.marginBottom = "15px";
             
             row.innerHTML = `
-                <div style="flex: 1; text-align: center;">
-                    <label>${sub.name} (Wymaga: ${sub.hosts} hostów)</label>
-                    <input type="text" id="ans-vlsm-ip-${index}" data-name="${sub.name}" placeholder="Adres sieci" style="text-align: center;">
-                </div>
-                <div style="flex: 1; text-align: center;">
-                    <label>Maska (CIDR)</label>
-                    <input type="number" id="ans-vlsm-mask-${index}" placeholder="np. 24" style="text-align: center;">
+                <label>${sub.name} (Wymaga: ${sub.hosts} hostów)</label>
+                <div class="flex-row" style="align-items: center; justify-content: flex-start; gap: 10px;">
+                    <input type="text" id="ans-vlsm-ip-${index}" data-name="${sub.name}" placeholder="Adres sieci (np. 192.168.1.0)" style="flex: 3;">
+                    <span style="font-weight: bold; font-size: 20px; color: var(--accent-color);">/</span>
+                    <input type="number" id="ans-vlsm-mask-${index}" placeholder="24" style="flex: 1; max-width: 80px;">
                 </div>
             `;
             listEl.appendChild(row);
@@ -418,7 +413,7 @@
         currentVlsmTask = {
             baseIp: longToIp(baseNetLong),
             baseCidr: baseCidr,
-            subnets: sorted // To jest już poprawnie posortowana tablica
+            subnets: sorted
         };
 
         document.getElementById('vlsm-base-display').innerText = `${currentVlsmTask.baseIp} /${currentVlsmTask.baseCidr}`;
@@ -431,24 +426,21 @@
         document.getElementById('feed-vlsm').className = "feedback";
     }
 
-    // Nowa funkcja - sortowanie ułatwiające
     function sortVlsmList() {
-        // Renderuje tablicę z obiektu Task (która z definicji jest prawidłowo posortowana)
         renderVlsmList(currentVlsmTask.subnets);
         const feed = document.getElementById('feed-vlsm');
         feed.innerText = "Podsieci zostały automatycznie posortowane od największej do najmniejszej.";
         feed.className = "feedback success";
     }
 
-    // Nowa funkcja - pokazywanie odpowiedzi
     function showVlsmAnswers() {
-        // Najpierw bezpiecznie posortujmy, żeby odpowiedzi miały logiczny sens na ekranie
         renderVlsmList(currentVlsmTask.subnets);
         
         const listEl = document.getElementById('vlsm-input-list');
         const rows = listEl.children;
 
         for (let i = 0; i < rows.length; i++) {
+            // Wyszukujemy po polach input wewnątrz modyfikowanego layoutu
             const ipInput = document.getElementById(`ans-vlsm-ip-${i}`);
             const maskInput = document.getElementById(`ans-vlsm-mask-${i}`);
             const subName = ipInput.getAttribute('data-name');
