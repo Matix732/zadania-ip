@@ -96,20 +96,31 @@
 
         input:focus { outline: none; border-color: var(--primary-color); }
 
-        button {
-            padding: 12px 20px;
-            background-color: var(--primary-color);
-            color: var(--bg-color);
-            border: none;
-            border-radius: 6px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            margin-top: 10px;
-            transition: opacity 0.2s;
+        /* Ustandaryzowane przyciski */
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
         }
 
-        button:hover { opacity: 0.8; }
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.1s;
+        }
+
+        button:hover { opacity: 0.85; }
+        button:active { transform: scale(0.98); }
+
+        .btn-primary { background-color: var(--primary-color); color: var(--bg-color); }
+        .btn-secondary { background-color: var(--accent-color); color: var(--text-color); }
+        .btn-info { background-color: #8be9fd; color: #282a36; }
+        .btn-warning { background-color: #f1fa8c; color: #282a36; }
 
         .result-box {
             margin-top: 20px;
@@ -128,9 +139,6 @@
         .feedback { font-size: 14px; margin-top: 5px; font-weight: bold; }
         .feedback.success { color: var(--success-color); }
         .feedback.error { color: var(--error-color); }
-        
-        .btn-hint { background-color: #8be9fd; color: var(--bg-color); }
-        .btn-answer { background-color: #f1fa8c; color: var(--bg-color); }
     </style>
 </head>
 <body>
@@ -155,7 +163,7 @@
             <label>Maska (CIDR)</label>
             <input type="number" id="calc-mask" min="8" max="32" placeholder="8-32">
         </div>
-        <button onclick="calculateSubnet()">Oblicz</button>
+        <button class="btn-primary" onclick="calculateSubnet()">Oblicz</button>
         <div id="calc-result" class="result-box" style="display:none;"></div>
     </div>
 
@@ -174,9 +182,10 @@
             <div id="feed-brd" class="feedback"></div>
         </div>
         
-        <div class="flex-row">
-            <button onclick="checkIpTrainer()">Sprawdź</button>
-            <button onclick="generateIpTask()" style="background-color: var(--accent-color);">Nowe Zadanie</button>
+        <div class="button-group">
+            <button class="btn-primary" onclick="checkIpTrainer()">✅ Sprawdź</button>
+            <button class="btn-warning" onclick="showIpAnswers()">👁️ Pokaż odpowiedzi</button>
+            <button class="btn-secondary" onclick="generateIpTask()">🔄 Nowe Zadanie</button>
         </div>
     </div>
 
@@ -186,17 +195,13 @@
         <p>Wydziel z niego poniższe podsieci (pamiętaj o sortowaniu od największej do najmniejszej i rezerwacji adresów!):</p>
         
         <div id="vlsm-input-list"></div>
+        <div id="feed-vlsm" class="feedback"></div>
         
-        <div id="feed-vlsm" class="feedback" style="margin-bottom: 15px;"></div>
-        
-        <div class="flex-row" style="margin-bottom: 15px; flex-wrap: wrap;">
-            <button class="btn-hint" onclick="sortVlsmList()">💡 Ułatwienie: Posortuj</button>
-            <button class="btn-answer" onclick="showVlsmAnswers()">👁️ Pokaż odpowiedzi</button>
-        </div>
-
-        <div class="flex-row" style="flex-wrap: wrap;">
-            <button onclick="checkVlsmTrainer()">Sprawdź podział</button>
-            <button onclick="generateDynamicVlsmTask()" style="background-color: var(--accent-color);">Generuj Scenariusz</button>
+        <div class="button-group">
+            <button class="btn-primary" onclick="checkVlsmTrainer()">✅ Sprawdź</button>
+            <button class="btn-info" onclick="sortVlsmList()">💡 Posortuj</button>
+            <button class="btn-warning" onclick="showVlsmAnswers()">👁️ Odpowiedzi</button>
+            <button class="btn-secondary" onclick="generateDynamicVlsmTask()">🔄 Nowy Scenariusz</button>
         </div>
     </div>
 
@@ -217,9 +222,10 @@
         </div>
         <div id="feed-agg" class="feedback"></div>
         
-        <div class="flex-row">
-            <button onclick="checkAggTrainer()">Sprawdź</button>
-            <button onclick="generateAggTask()" style="background-color: var(--accent-color);">Nowe Zadanie</button>
+        <div class="button-group">
+            <button class="btn-primary" onclick="checkAggTrainer()">✅ Sprawdź</button>
+            <button class="btn-warning" onclick="showAggAnswers()">👁️ Pokaż odpowiedzi</button>
+            <button class="btn-secondary" onclick="generateAggTask()">🔄 Nowe Zadanie</button>
         </div>
     </div>
 
@@ -290,7 +296,7 @@
         }
     }
 
-    // --- Logika generatora zad IP ---
+    // --- LOGIKA TRENAŻERA IP ---
     let currentTrainInfo = {};
 
     function generateIpTask() {
@@ -309,7 +315,7 @@
             const el = document.getElementById(id);
             el.value = ""; el.className = "";
         });
-        ['feed-net', 'feed-brd'].forEach(id => { document.getElementById(id).innerText = ""; });
+        ['feed-net', 'feed-brd'].forEach(id => { document.getElementById(id).innerText = ""; document.getElementById(id).className = "feedback"; });
     }
 
     function checkIpTrainer() {
@@ -319,16 +325,41 @@
         const feedBrd = document.getElementById('feed-brd');
 
         if(userNet.value.trim() === currentTrainInfo.network) {
-            userNet.className = "correct"; feedNet.innerHTML = "Świetnie!"; feedNet.className = "feedback success";
+            userNet.className = "correct"; 
+            feedNet.innerHTML = "Świetnie!"; 
+            feedNet.className = "feedback success";
         } else {
-            userNet.className = "incorrect"; feedNet.innerHTML = `Błąd. Prawidłowa sieć to: ${currentTrainInfo.network}`; feedNet.className = "feedback error";
+            userNet.className = "incorrect"; 
+            feedNet.innerHTML = `Błąd. Spróbuj przeliczyć to jeszcze raz!`; 
+            feedNet.className = "feedback error";
         }
 
         if(userBrd.value.trim() === currentTrainInfo.broadcast) {
-            userBrd.className = "correct"; feedBrd.innerHTML = "Świetnie!"; feedBrd.className = "feedback success";
+            userBrd.className = "correct"; 
+            feedBrd.innerHTML = "Świetnie!"; 
+            feedBrd.className = "feedback success";
         } else {
-            userBrd.className = "incorrect"; feedBrd.innerHTML = `Błąd. Prawidłowy broadcast to: ${currentTrainInfo.broadcast}`; feedBrd.className = "feedback error";
+            userBrd.className = "incorrect"; 
+            feedBrd.innerHTML = `Błąd. Spróbuj przeliczyć to jeszcze raz!`; 
+            feedBrd.className = "feedback error";
         }
+    }
+
+    function showIpAnswers() {
+        const userNet = document.getElementById('ans-net');
+        const userBrd = document.getElementById('ans-brd');
+        const feedNet = document.getElementById('feed-net');
+        const feedBrd = document.getElementById('feed-brd');
+
+        userNet.value = currentTrainInfo.network;
+        userNet.className = "correct";
+        feedNet.innerHTML = "Poprawny adres sieci.";
+        feedNet.className = "feedback success";
+
+        userBrd.value = currentTrainInfo.broadcast;
+        userBrd.className = "correct";
+        feedBrd.innerHTML = "Poprawny adres rozgłoszeniowy.";
+        feedBrd.className = "feedback success";
     }
 
     // --- DYNAMICZNY SILNIK VLSM ---
@@ -440,7 +471,6 @@
         const rows = listEl.children;
 
         for (let i = 0; i < rows.length; i++) {
-            // Wyszukujemy po polach input wewnątrz modyfikowanego layoutu
             const ipInput = document.getElementById(`ans-vlsm-ip-${i}`);
             const maskInput = document.getElementById(`ans-vlsm-mask-${i}`);
             const subName = ipInput.getAttribute('data-name');
@@ -553,9 +583,23 @@
             feed.innerText = "Perfekcyjnie! Obliczyłeś prawidłowy supernet.";
             feed.className = "feedback success";
         } else {
-            feed.innerText = `Błąd. Prawidłowy supernet to: ${currentAggTask.ip} /${currentAggTask.mask}`;
+            feed.innerText = `Błąd. Przelicz dokładnie wspólne bity (zwróć uwagę na granice podsieci) i spróbuj ponownie.`;
             feed.className = "feedback error";
         }
+    }
+
+    function showAggAnswers() {
+        const userIp = document.getElementById('ans-agg-ip');
+        const userMask = document.getElementById('ans-agg-mask');
+        const feed = document.getElementById('feed-agg');
+
+        userIp.value = currentAggTask.ip;
+        userIp.className = "correct";
+        userMask.value = currentAggTask.mask;
+        userMask.className = "correct";
+
+        feed.innerText = "Odpowiedzi zostały odkryte!";
+        feed.className = "feedback success";
     }
 
     // Uruchomienie narzędzi po załadowaniu
