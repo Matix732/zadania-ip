@@ -4,7 +4,7 @@ Wielofunkcyjna aplikacja webowa (Single Page Application) stworzona z myślą o 
 
 Projekt łączy w sobie potężny kalkulator adresacji IPv4 z interaktywnymi trenażerami, które generują w locie nieskończoną liczbę scenariuszy do ćwiczeń.
 
-👉 **[OTWÓRZ APLIKACJĘ WWW](https://matix732.github.io/train-ip/)**
+👉 **OTWÓRZ APLIKACJĘ WWW [matix732.github.io/zadania-ip](https://matix732.github.io/zadania-ip/)**
 
 ## ✨ Dostępne Moduły
 
