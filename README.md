@@ -1,11 +1,10 @@
-*README wygenerowane przez Gemini by Google*
 # 🌐 Sieciowe Narzędzia IP: Kalkulator & Trenażer VLSM
 
 Wielofunkcyjna aplikacja webowa (Single Page Application) stworzona z myślą o inżynierach sieciowych, studentach informatyki oraz osobach przygotowujących się do certyfikacji branżowych (Cisco CCNA, CompTIA Network+) oraz egzaminów państwowych (INF.02 / EE.08). 
 
 Projekt łączy w sobie potężny kalkulator adresacji IPv4 z interaktywnymi trenażerami, które generują w locie nieskończoną liczbę scenariuszy do ćwiczeń.
 
-👉 **[ZOBACZ APLIKACJĘ NA ŻYWO (Live Demo)](TUTAJ WPISZ LINK DO GITHUB PAGES)**
+👉 **[OTWÓRZ APLIKACJĘ WWW](matix732.github.io/train-ip/)**
 
 ## ✨ Dostępne Moduły
 
@@ -28,15 +27,5 @@ Aplikacja składa się z 4 niezależnych zakładek:
 * Dla uczniów techników informatycznych (kwalifikacja **INF.02** / dawniej EE.08 / E.13).
 * Dla administratorów sieci, którzy chcą odświeżyć mechanikę adresacji bez wspomagania się kalkulatorami.
 
-## 💻 Uruchomienie lokalne
-Aby uruchomić aplikację lokalnie, nie potrzebujesz żadnego serwera. Wystarczy, że:
-1. Pobierzesz plik `index.html`.
-2. Otworzysz go w dowolnej nowoczesnej przeglądarce internetowej (Chrome, Firefox, Edge, Safari).
-
-## 🛠️ Technologie
-* HTML5
-* CSS3 (Zmienne CSS, Flexbox)
-* JavaScript (ES6+, Operatory Bitowe, Manipulacja DOM)
-
 ---
-*Jeśli to narzędzie pomogło Ci zrozumieć sieci lub zdać egzamin - zostaw ⭐️ (gwiazdkę) w tym repozytorium!*
+*README wygenerowane przez Gemini by Google*
