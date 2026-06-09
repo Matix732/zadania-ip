@@ -136,7 +136,7 @@
             <input type="text" id="calc-ip" placeholder="X.X.X.X">
         </div>
         <div class="form-group">
-            <label>Maska (CIDR)</label>
+            <label>Maska</label>
             <input type="number" id="calc-mask" min="8" max="32" placeholder="8-32">
         </div>
         <button onclick="calculateSubnet()">Oblicz</button>
@@ -190,7 +190,7 @@
                 <input type="text" id="ans-agg-ip" placeholder="X.X.X.X">
             </div>
             <div class="form-group" style="flex: 1;">
-                <label>Maska (CIDR)</label>
+                <label>Maska</label>
                 <input type="number" id="ans-agg-mask" placeholder="np. 22">
             </div>
         </div>
@@ -229,92 +229,16 @@
         };
     }
 
-
     function switchTab(tabId) {
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
         
-        document.querySelector(`.tab[onclick="switchTab('${tabId}')"]`).classList.add('active');
-        document.getElementById(tabId).classList.add('active');
+        const activeTab = document.querySelector(`.tab[onclick="switchTab('${tabId}')"]`);
+        if (activeTab) activeTab.classList.add('active');
+
+        const activeContent = document.getElementById(tabId);
+        if (activeContent) activeContent.classList.add('active');
     }
 
     function calculateSubnet() {
-        const ip = document.getElementById('calc-ip').value;
-        const mask = parseInt(document.getElementById('calc-mask').value);
-        const resBox = document.getElementById('calc-result');
-
-        if(!ip || !mask || mask < 8 || mask > 32) {
-            resBox.innerHTML = "<span style='color:red;'>Podaj poprawny adres IP i maskę (8-32).</span>";
-            resBox.style.display = "block";
-            return;
-        }
-
-        try {
-            const info = getSubnetInfo(ip, mask);
-            resBox.innerHTML = `
-                <strong>Sieć:</strong> ${info.network} /${mask}<br>
-                <strong>Pierwszy host:</strong> ${info.firstHost}<br>
-                <strong>Ostatni host:</strong> ${info.lastHost}<br>
-                <strong>Broadcast:</strong> ${info.broadcast}<br>
-                <strong>Użyteczne hosty:</strong> ${info.hosts}
-            `;
-            resBox.style.display = "block";
-        } catch (e) {
-            resBox.innerHTML = "<span style='color:red;'>Błąd formatu IP.</span>";
-            resBox.style.display = "block";
-        }
-    }
-
-    let currentTrainInfo = {};
-
-    function generateIpTask() {
-        const octet1 = Math.floor(Math.random() * 223) + 1;
-        const octet2 = Math.floor(Math.random() * 256);
-        const octet3 = Math.floor(Math.random() * 256);
-        const octet4 = Math.floor(Math.random() * 256);
-        const cidr = Math.floor(Math.random() * 20) + 10;
-        
-        const ip = `${octet1}.${octet2}.${octet3}.${octet4}`;
-        currentTrainInfo = getSubnetInfo(ip, cidr);
-        
-        document.getElementById('train-ip-display').innerText = `${ip} /${cidr}`;
-        
-        ['ans-net', 'ans-brd'].forEach(id => {
-            const el = document.getElementById(id);
-            el.value = ""; el.className = "";
-        });
-        ['feed-net', 'feed-brd'].forEach(id => { document.getElementById(id).innerText = ""; });
-    }
-
-    function checkIpTrainer() {
-        const userNet = document.getElementById('ans-net');
-        const userBrd = document.getElementById('ans-brd');
-        const feedNet = document.getElementById('feed-net');
-        const feedBrd = document.getElementById('feed-brd');
-
-        if(userNet.value.trim() === currentTrainInfo.network) {
-            userNet.className = "correct"; feedNet.innerHTML = "Świetnie!"; feedNet.className = "feedback success";
-        } else {
-            userNet.className = "incorrect"; feedNet.innerHTML = `Błąd. Prawidłowa sieć to: ${currentTrainInfo.network}`; feedNet.className = "feedback error";
-        }
-
-        if(userBrd.value.trim() === currentTrainInfo.broadcast) {
-            userBrd.className = "correct"; feedBrd.innerHTML = "Świetnie!"; feedBrd.className = "feedback success";
-        } else {
-            userBrd.className = "incorrect"; feedBrd.innerHTML = `Błąd. Prawidłowy broadcast to: ${currentTrainInfo.broadcast}`; feedBrd.className = "feedback error";
-        }
-    }
-
-    let currentVlsmTask = {};
-
-    function generateDynamicVlsmTask() {
-        const depNames = ["Zarząd", "Księgowość", "IT", "HR", "Logistyka", "Produkcja", "Sprzedaż", "Goście", "WAN 1", "WAN 2", "Kamery IoT", "Serwery"];
-        depNames.sort(() => Math.random() - 0.5);
-
-        const numSubnets = Math.floor(Math.random() * 3) + 4; // 4 do 6 podsieci
-        let reqSubnets = [];
-
-        for(let i=0; i<numSubnets; i++) {
-            let hosts;
-            let rand = Math.random();
-            if (rand < 0.2
+        const ip = document
