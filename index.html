@@ -13,7 +13,8 @@
     <meta property="og:url" content="https://twoj-login.github.io/ip-tools/">
     <meta property="og:title" content="Zaawansowany Kalkulator Podsieci i Trenażer VLSM">
     <meta property="og:description" content="Wyliczaj podsieci w locie i trenuj adresację IPv4. Idealne narzędzie dla inżynierów sieciowych i studentów IT. Zobacz działający trenażer!">
-    <meta property="og:image" content="https://images.unsplash.com/photo-1558494949-ef010cbdcc31?q=80&w=1200&auto=format&fit=crop"> <meta property="twitter:card" content="summary_large_image">
+    <meta property="og:image" content="https://images.unsplash.com/photo-1558494949-ef010cbdcc31?q=80&w=1200&auto=format&fit=crop"> 
+    <meta property="twitter:card" content="summary_large_image">
     <meta property="twitter:title" content="Zaawansowany Kalkulator Podsieci i Trenażer VLSM">
     <meta property="twitter:description" content="Darmowy kalkulator podsieci, agregacji i trenażer VLSM. Sprawdź swoje umiejętności sieciowe!">
     <style>
@@ -124,9 +125,12 @@
         .correct { border-color: var(--success-color) !important; background-color: rgba(80, 250, 123, 0.1); }
         .incorrect { border-color: var(--error-color) !important; background-color: rgba(255, 85, 85, 0.1); }
         
-        .feedback { font-size: 14px; margin-top: 5px; }
+        .feedback { font-size: 14px; margin-top: 5px; text-align: center; font-weight: bold; }
         .feedback.success { color: var(--success-color); }
         .feedback.error { color: var(--error-color); }
+        
+        .btn-hint { background-color: #8be9fd; color: var(--bg-color); }
+        .btn-answer { background-color: #f1fa8c; color: var(--bg-color); }
     </style>
 </head>
 <body>
@@ -177,15 +181,20 @@
     </div>
 
     <div id="trainer-vlsm" class="content">
-        <h2>Dynamiczny podział VLSM</h2>
-        <p>Dostałeś do dyspozycji blok adresowy: <strong id="vlsm-base-display" style="color:var(--primary-color); font-size:1.2em;"></strong></p>
-        <p>Wydziel z niego poniższe podsieci (pamiętaj o sortowaniu od największej do najmniejszej i rezerwacji adresów!):</p>
+        <h2 style="text-align: center;">Dynamiczny podział VLSM</h2>
+        <p style="text-align: center;">Dostałeś do dyspozycji blok adresowy: <strong id="vlsm-base-display" style="color:var(--primary-color); font-size:1.2em;"></strong></p>
+        <p style="text-align: center;">Wydziel z niego poniższe podsieci (pamiętaj o sortowaniu od największej do najmniejszej i rezerwacji adresów!):</p>
         
         <div id="vlsm-input-list"></div>
         
         <div id="feed-vlsm" class="feedback" style="margin-bottom: 15px;"></div>
         
-        <div class="flex-row">
+        <div class="flex-row" style="justify-content: center; margin-bottom: 15px; flex-wrap: wrap;">
+            <button class="btn-hint" onclick="sortVlsmList()">💡 Ułatwienie: Posortuj</button>
+            <button class="btn-answer" onclick="showVlsmAnswers()">👁️ Pokaż odpowiedzi</button>
+        </div>
+
+        <div class="flex-row" style="justify-content: center; flex-wrap: wrap;">
             <button onclick="checkVlsmTrainer()">Sprawdź podział</button>
             <button onclick="generateDynamicVlsmTask()" style="background-color: var(--accent-color);">Generuj Scenariusz</button>
         </div>
@@ -253,7 +262,7 @@
         if (activeContent) activeContent.classList.add('active');
     }
 
-    // --- LLogika Kalkulatora ---
+    // --- Logika Kalkulatora ---
     function calculateSubnet() {
         const ip = document.getElementById('calc-ip').value;
         const mask = parseInt(document.getElementById('calc-mask').value);
@@ -281,7 +290,7 @@
         }
     }
 
-    // --- LLogika generatora zad IP ---
+    // --- Logika generatora zad IP ---
     let currentTrainInfo = {};
 
     function generateIpTask() {
@@ -324,6 +333,32 @@
 
     // --- DYNAMICZNY SILNIK VLSM ---
     let currentVlsmTask = {};
+
+    function renderVlsmList(subnetsArray) {
+        const listEl = document.getElementById('vlsm-input-list');
+        listEl.innerHTML = "";
+        
+        subnetsArray.forEach((sub, index) => {
+            const row = document.createElement('div');
+            row.className = "flex-row form-group";
+            // Zmieniono wyrównanie na środek
+            row.style.alignItems = "center";
+            row.style.justifyContent = "center";
+            row.style.marginBottom = "10px";
+            
+            row.innerHTML = `
+                <div style="flex: 1; text-align: center;">
+                    <label>${sub.name} (Wymaga: ${sub.hosts} hostów)</label>
+                    <input type="text" id="ans-vlsm-ip-${index}" data-name="${sub.name}" placeholder="Adres sieci" style="text-align: center;">
+                </div>
+                <div style="flex: 1; text-align: center;">
+                    <label>Maska (CIDR)</label>
+                    <input type="number" id="ans-vlsm-mask-${index}" placeholder="np. 24" style="text-align: center;">
+                </div>
+            `;
+            listEl.appendChild(row);
+        });
+    }
 
     function generateDynamicVlsmTask() {
         const depNames = ["Zarząd", "Księgowość", "IT", "HR", "Logistyka", "Produkcja", "Sprzedaż", "Goście", "WAN 1", "WAN 2", "Kamery IoT", "Serwery"];
@@ -383,35 +418,53 @@
         currentVlsmTask = {
             baseIp: longToIp(baseNetLong),
             baseCidr: baseCidr,
-            subnets: sorted
+            subnets: sorted // To jest już poprawnie posortowana tablica
         };
 
         document.getElementById('vlsm-base-display').innerText = `${currentVlsmTask.baseIp} /${currentVlsmTask.baseCidr}`;
         
+        // Renderujemy pomikszowaną listę jako zadanie
         let shuffledSubnets = [...currentVlsmTask.subnets].sort(() => Math.random() - 0.5);
-        const listEl = document.getElementById('vlsm-input-list');
-        listEl.innerHTML = "";
-        
-        shuffledSubnets.forEach((sub, index) => {
-            const row = document.createElement('div');
-            row.className = "flex-row form-group";
-            row.style.alignItems = "flex-end";
-            row.style.marginBottom = "10px";
-            row.innerHTML = `
-                <div style="flex: 2;">
-                    <label>${sub.name} (Wymaga: ${sub.hosts} hostów)</label>
-                    <input type="text" id="ans-vlsm-ip-${index}" data-name="${sub.name}" placeholder="Adres sieci">
-                </div>
-                <div style="flex: 1;">
-                    <label>Maska (CIDR)</label>
-                    <input type="number" id="ans-vlsm-mask-${index}" placeholder="np. 24">
-                </div>
-            `;
-            listEl.appendChild(row);
-        });
+        renderVlsmList(shuffledSubnets);
 
         document.getElementById('feed-vlsm').innerText = "";
         document.getElementById('feed-vlsm').className = "feedback";
+    }
+
+    // Nowa funkcja - sortowanie ułatwiające
+    function sortVlsmList() {
+        // Renderuje tablicę z obiektu Task (która z definicji jest prawidłowo posortowana)
+        renderVlsmList(currentVlsmTask.subnets);
+        const feed = document.getElementById('feed-vlsm');
+        feed.innerText = "Podsieci zostały automatycznie posortowane od największej do najmniejszej.";
+        feed.className = "feedback success";
+    }
+
+    // Nowa funkcja - pokazywanie odpowiedzi
+    function showVlsmAnswers() {
+        // Najpierw bezpiecznie posortujmy, żeby odpowiedzi miały logiczny sens na ekranie
+        renderVlsmList(currentVlsmTask.subnets);
+        
+        const listEl = document.getElementById('vlsm-input-list');
+        const rows = listEl.children;
+
+        for (let i = 0; i < rows.length; i++) {
+            const ipInput = document.getElementById(`ans-vlsm-ip-${i}`);
+            const maskInput = document.getElementById(`ans-vlsm-mask-${i}`);
+            const subName = ipInput.getAttribute('data-name');
+
+            const correctData = currentVlsmTask.subnets.find(s => s.name === subName);
+
+            ipInput.value = correctData.correctIp;
+            maskInput.value = correctData.correctCidr;
+            
+            ipInput.className = "correct";
+            maskInput.className = "correct";
+        }
+        
+        const feed = document.getElementById('feed-vlsm');
+        feed.innerText = "Odpowiedzi zostały odkryte!";
+        feed.className = "feedback success";
     }
 
     function checkVlsmTrainer() {
